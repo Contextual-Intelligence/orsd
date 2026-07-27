@@ -1,0 +1,28 @@
+Database compilation: ODbL v1.0
+
+Copyright (c) 2026 Contextual Intelligence Ltd.
+
+The Open Regulatory Signal Dataset (ORSD) is a compiled database. Its
+structure, selection, coordination, and arrangement are licensed under
+the Open Database License (ODbL) v1.0.
+
+You are free to:
+- Share — copy and redistribute the database
+- Create — adapt, transform, and build upon the database
+- Use — for any purpose, commercial or non-commercial
+
+As long as you:
+- Attribute — You must attribute the source (orsd.contextual-intelligence.org)
+  and any public use of the database, or works produced from it.
+- Share-Alike — If you publicly use any adapted version of this database,
+  or works produced from an adapted database, you must also offer that
+  adapted database under the ODbL.
+- Keep open — If you redistribute the database, or an adapted version of
+  it, you may not use technological measures that restrict the work.
+
+Full license text: https://opendatacommons.org/licenses/odbl/1-0/
+
+──────────────────────────────────────────────────────────────────────
+
+Individual data points retain the licenses of their original sources.
+See DATA-SOURCES.md for per-source attribution and license details.

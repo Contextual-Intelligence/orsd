@@ -1,0 +1,25 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Uptime Check — periodic health endpoint monitoring
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Uptime Check
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check ORSD API health
+        run: |
+          URL="https://orsd.contextual-intelligence.org/api/health"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL")
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ ORSD API returned HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ ORSD API is healthy (HTTP $STATUS)"

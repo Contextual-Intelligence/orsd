@@ -1,0 +1,17 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# ORSD Crawler — Multi-stage build
+# ──────────────────────────────────────────────────────────────────────────────
+
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package.json tsconfig.base.json ./
+COPY packages/crawler packages/crawler
+RUN npm install
+RUN npm -w packages/crawler run build
+
+FROM node:22-alpine
+WORKDIR /app
+COPY --from=builder /app/packages/crawler/dist /app/dist
+COPY --from=builder /app/packages/crawler/package.json /app/
+RUN npm install --omit=dev
+CMD ["node", "dist/index.js"]

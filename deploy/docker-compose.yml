@@ -1,0 +1,58 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# ORSD — Standalone Deployment
+# ──────────────────────────────────────────────────────────────────────────────
+# Spins up Dgraph + the API server. Crawler runs on-demand or via cron.
+#
+# Usage:
+#   docker compose up -d              # start Dgraph + API
+#   docker compose run --rm crawler   # run a crawl on-demand
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  dgraph:
+    image: dgraph/standalone:v24.0.0
+    ports:
+      - "8080:8080"
+      - "9080:9080"
+    volumes:
+      - dgraph_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    ports:
+      - "3003:3003"
+    environment:
+      DGRAPH_URL: http://dgraph:8080
+      PORT: "3003"
+    depends_on:
+      dgraph:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3003/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  crawler:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.crawler
+    environment:
+      DGRAPH_URL: http://dgraph:8080
+    depends_on:
+      dgraph:
+        condition: service_healthy
+    profiles:
+      - crawl
+
+volumes:
+  dgraph_data:

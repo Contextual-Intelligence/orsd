@@ -1,0 +1,28 @@
+{
+  "name": "orsd",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open Regulatory Signal Dataset — a public dataset of regulatory signals from 22+ sources across 10 jurisdictions",
+  "license": "ODbL-1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "eslint . --max-warnings 500",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:api": "npm -w packages/api run dev",
+    "dev:crawler": "npm -w packages/crawler run dev",
+    "crawl": "npm -w packages/crawler run start",
+    "start:api": "npm -w packages/api run start"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "eslint": "^9.39.4",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.10"
+  }
+}

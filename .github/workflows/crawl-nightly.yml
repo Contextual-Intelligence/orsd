@@ -1,0 +1,31 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# ORSD Nightly Crawl — runs all source connectors
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Nightly Crawl
+
+on:
+  schedule:
+    # 02:00 UTC daily
+    - cron: "0 2 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Run crawl
+        run: npm run crawl
+        env:
+          DGRAPH_URL: ${{ secrets.ORSD_DGRAPH_URL }}
+      - name: Report results
+        if: always()
+        run: |
+          echo "Nightly crawl complete. Check the crawl logs above for details."
