@@ -1,18 +1,36 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# ORSD API — Multi-stage build
+# ORSD API — Multi-stage build (workspace-safe)
 # ──────────────────────────────────────────────────────────────────────────────
 
-FROM node:22-alpine AS builder
+FROM node:22-alpine AS base
 WORKDIR /app
-COPY package.json tsconfig.base.json ./
-COPY packages/api packages/api
+
+# ── builder stage ─────────────────────────────────────────────────────────────
+FROM base AS builder
+
+# Install workspace root + API deps first (layer caching)
+COPY package.json package-lock.json ./
+COPY packages/api/package.json packages/api/package.json
 RUN npm install
+
+# Copy API source and build
+COPY packages/api/ packages/api/
 RUN npm -w packages/api run build
 
-FROM node:22-alpine
-WORKDIR /app
-COPY --from=builder /app/packages/api/dist /app/dist
-COPY --from=builder /app/packages/api/package.json /app/
-RUN npm install --omit=dev
-CMD ["node", "dist/index.js"]
+# Prune dev dependencies
+RUN npm prune --omit=dev
+
+# ── production stage ──────────────────────────────────────────────────────────
+FROM base
+
 EXPOSE 3003
+
+COPY --from=builder /app/packages/api/dist /app/dist
+COPY --from=builder /app/packages/api/package.json /app/package.json
+COPY --from=builder /app/node_modules /app/node_modules
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=10 --start-period=15s \
+  CMD node -e "fetch('http://localhost:3003/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+USER node
+CMD ["node", "dist/index.js"]

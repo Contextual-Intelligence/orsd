@@ -4,3 +4,7 @@ dist
 *.md
 docs
 adr
+__tests__
+.gitignore
+.env
+*.tsbuildinfo
