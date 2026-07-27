@@ -16,6 +16,7 @@ import { TgaSource } from "./tga/index.js";
 import { HealthCanadaSource } from "./health-canada/index.js";
 import { MfdsSource } from "./mfds/index.js";
 import { WhoSource } from "./who/index.js";
+import { ClinicalTrialsSource } from "./clinical-trials/index.js";
 
 export interface SourceConnector {
   /** Unique source identifier (e.g. "fda", "eudamed") */
@@ -37,6 +38,7 @@ const REGISTERED_SOURCES: SourceConnector[] = [
   new HealthCanadaSource(),
   new MfdsSource(),
   new WhoSource(),
+  new ClinicalTrialsSource(),
 ];
 
 /** Returns all registered source connectors */

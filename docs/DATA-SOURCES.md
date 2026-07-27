@@ -9,64 +9,64 @@ compilation is licensed under ODbL v1.0.
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
 | FDA 510(k) Premarket Notification | Device clearances | Public domain (US gov) | ✅ Integrated |
-| FDA PMA (Premarket Approval) | Device approvals | Public domain (US gov) | 🔜 Planned |
-| FDA De Novo Classification | Novel device classifications | Public domain (US gov) | 🔜 Planned |
-| FDA CLIA Waiver | Lab test waivers | Public domain (US gov) | 🔜 Planned |
-| ClinicalTrials.gov | Clinical trials | Public domain (US gov) | 🔜 Planned |
+| FDA PMA (Premarket Approval) | Device approvals | Public domain (US gov) | ✅ Integrated |
+| FDA De Novo Classification | Novel device classifications | Public domain (US gov) | ✅ Integrated |
+| FDA CLIA Waiver | Lab test waivers | Public domain (US gov) | ✅ Integrated |
+| ClinicalTrials.gov | Clinical trials | Public domain (US gov) | ✅ Integrated |
 
 ## European Union (EU)
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| EUDAMED | Device certificates, NB opinions, clinical investigations | EU open data | 🔜 Planned |
+| EUDAMED | Device certificates, NB opinions, clinical investigations | EU open data | ✅ Integrated (public API) |
 
 ## Brazil (BR)
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| ANVISA | Medical device registrations | Brazilian open data (CC-BY) | 🔜 Planned |
+| ANVISA | Medical device registrations | Brazilian open data (CC-BY) | ✅ Integrated (API + CSV) |
 
 ## Japan (JP)
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| PMDA | Device approvals, certifications | Japanese open data | 🔜 Planned |
+| PMDA | Device approvals, certifications | Japanese open data | ✅ Integrated (CSV export) |
 
 ## India (IN)
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| CDSCO | Medical device registrations, import licenses | Indian open data | 🔜 Planned |
+| CDSCO | Medical device registrations, import licenses | Indian open data | ✅ Integrated (data.gov.in) |
 
 ## China (CN)
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| NMPA | Medical device approvals | Chinese open data | 🔜 Planned |
+| NMPA | Medical device approvals | Chinese open data | ✅ Integrated (data.gov.cn) |
 
 ## South Korea (KR)
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| MFDS | Medical device approvals | Korean open data | 🔜 Planned |
+| MFDS | Medical device approvals | Korean open data | ✅ Integrated (requires MFDS_API_KEY) |
 
 ## Australia (AU)
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| TGA | Medical device registrations | Australian open data (CC-BY) | 🔜 Planned |
+| TGA | Medical device registrations | Australian open data (CC-BY) | ✅ Integrated (data.gov.au) |
 
 ## Canada (CA)
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| Health Canada | Medical device licenses | Canadian open data | 🔜 Planned |
+| Health Canada | Medical device licenses | Canadian open data | ✅ Integrated (HC API + Open Canada) |
 
 ## International
 
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
-| WHO Prequalification | Medical product PQ listings | WHO open access | 🔜 Planned |
+| WHO Prequalification | Medical product PQ listings | WHO open access | ✅ Integrated (PQ API + CSV) |
 
 ## Adding a Source
 
