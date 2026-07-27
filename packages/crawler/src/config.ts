@@ -23,7 +23,9 @@ function envStr(key: string, fallback: string): string {
 
 function envInt(key: string, fallback: number): number {
   const v = process.env[key];
-  return v ? parseInt(v, 10) : fallback;
+  if (!v) return fallback;
+  const n = parseInt(v, 10);
+  return Number.isNaN(n) ? fallback : n;
 }
 
 export function loadConfig(): CrawlerConfig {

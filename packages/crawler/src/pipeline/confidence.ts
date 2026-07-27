@@ -31,7 +31,7 @@ export function scoreConfidence(signals: NormalizedSignal[]): NormalizedSignal[]
 }
 
 function computeConfidence(signal: NormalizedSignal): Confidence {
-  const baseReliability = SOURCE_RELIABILITY[signal.source] ?? 0.5;
+  const baseReliability = SOURCE_RELIABILITY[signal.source] ?? 0.3;
 
   // Bonus for having key fields
   let score = baseReliability;
