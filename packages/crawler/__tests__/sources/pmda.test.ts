@@ -10,10 +10,12 @@ const CONFIG: CrawlerConfig = {
   userAgent: "ORSD-Test/1.0",
 };
 
-/** Simulated PMDA CSV export content (Japanese column headers, Shift-JIS-like). */
+/** Simulated PMDA CSV export with all three Japanese era formats. */
 const MOCK_PMDA_CSV = `承認番号,販売名,一般的名称,申請者,承認日
 22500BZX00001000,MRI診断装置,X-Ray System,株式会社島津製作所,令和5年4月1日
-22600BZX00002000,超音波診断装置,Ultrasound System,富士フィルムメディカル,令和5年6月15日`;
+22600BZX00002000,超音波診断装置,Ultrasound System,富士フィルムメディカル,令和5年6月15日
+30100BZX00003000,CT Scanner Pro,CT System,東芝メディカル,平成30年1月1日
+31000BZX00004000,Ventilator X,Ventilator,航空電子,昭和64年1月7日`;
 
 /** Simulated PMDA API response (fallback when CSV unavailable). */
 const MOCK_PMDA_API = [
@@ -34,21 +36,31 @@ describe("PmdaSource", () => {
     expect(source.jurisdiction).toBe("JP");
   });
 
-  it("should parse CSV export with Japanese era dates", async () => {
+  it("should parse CSV export with Japanese era dates (Reiwa, Heisei, Showa)", async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(MOCK_PMDA_CSV, { status: 200 }),
     );
 
     const signals = await source.fetch(CONFIG);
-    expect(signals).toHaveLength(2);
+    expect(signals).toHaveLength(4);
 
+    // 令和5年4月1日 → 2019 + 5 = 2024 → 2024-04-01
     const s1 = signals.find((s) => s.externalId?.includes("22500BZX00001000"));
     expect(s1).toBeDefined();
     expect(s1!.companyName).toBe("株式会社島津製作所");
     expect(s1!.productName).toBe("MRI診断装置");
     expect(s1!.type).toBe("PMDA_APPROVAL");
-    // 令和5年 = 2019 + 5 = 2024 → 2024-04-01
     expect(s1!.date).toBe("2024-04-01");
+
+    // 平成30年1月1日 → 1989 + 30 - 1 = 2018 → 2018-01-01
+    const s2 = signals.find((s) => s.externalId?.includes("30100BZX00003000"));
+    expect(s2).toBeDefined();
+    expect(s2!.date).toBe("2018-01-01");
+
+    // 昭和64年1月7日 → 1926 + 64 - 1 = 1989 → 1989-01-07
+    const s3 = signals.find((s) => s.externalId?.includes("31000BZX00004000"));
+    expect(s3).toBeDefined();
+    expect(s3!.date).toBe("1989-01-07");
   });
 
   it("should fall back to API when CSV fails", async () => {

@@ -103,13 +103,16 @@ export class TgaSource implements SourceConnector {
     // Attempt 2: Direct TGA API
     try {
       const url = `${ARTG_API_BASE}/products?type=medical-device&limit=100`;
+      const headers: Record<string, string> = {
+        "User-Agent": config.userAgent,
+        "Accept": "application/json",
+      };
+      // Only send API key if set — empty header may trigger rejections
+      if (process.env.TGA_API_KEY) {
+        headers["X-API-Key"] = process.env.TGA_API_KEY;
+      }
       const res = await fetch(url, {
-        headers: {
-          "User-Agent": config.userAgent,
-          "Accept": "application/json",
-          // TGA API may require an API key
-          "X-API-Key": process.env.TGA_API_KEY ?? "",
-        },
+        headers,
         signal: AbortSignal.timeout(15_000),
       });
 

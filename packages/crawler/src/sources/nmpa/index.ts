@@ -107,10 +107,23 @@ export class NmpaSource implements SourceConnector {
       if (res.ok) {
         const text = await res.text();
 
-        // Look for JSON embedded in the page
-        const jsonMatch = text.match(/var\s+deviceData\s*=\s*(\[[\s\S]*?\]);/);
-        if (jsonMatch) {
-          const devices = JSON.parse(jsonMatch[1]) as Array<{
+        // Look for JSON embedded in the page.
+        // Use a non-greedy approach: find var assignment, then try to balance brackets.
+        const jsonStart = text.match(/var\s+deviceData\s*=\s*(\[)/);
+        if (jsonStart) {
+          const startIdx = text.indexOf(jsonStart[1], jsonStart.index!);
+          let depth = 0;
+          let endIdx = startIdx;
+          for (; endIdx < text.length; endIdx++) {
+            if (text[endIdx] === "[") depth++;
+            else if (text[endIdx] === "]") {
+              depth--;
+              if (depth === 0) break;
+            }
+          }
+          const jsonStr = text.slice(startIdx, endIdx + 1);
+          try {
+            const devices = JSON.parse(jsonStr) as Array<{
             id?: string;
             name?: string;
             company?: string;
@@ -131,6 +144,9 @@ export class NmpaSource implements SourceConnector {
               productName: device.name,
               productCode: device.regNo,
             });
+          }
+          } catch {
+            // JSON parse failed — embedded data may be malformed
           }
         }
       }

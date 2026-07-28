@@ -27,12 +27,6 @@ export async function deduplicateSignals(
 ): Promise<NormalizedSignal[]> {
   if (signals.length === 0) return [];
 
-  // Compute the expected ORSD ID for each incoming signal
-  // These are deterministic from source + externalId
-  const incomingIds = new Set(
-    signals.map((s) => computeOrsdId(s.source, s.externalId)),
-  );
-
   // Fetch existing ORSD IDs already stored in Dgraph
   const existingIds = await fetchAllExistingIds(config);
 

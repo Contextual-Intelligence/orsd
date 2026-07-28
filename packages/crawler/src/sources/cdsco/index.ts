@@ -101,10 +101,23 @@ export class CdscoSource implements SourceConnector {
       if (res.ok) {
         const html = await res.text();
 
-        // Look for JSON-embedded data in script tags (common in modern portals)
-        const jsonMatch = html.match(/<script[^>]*>window\.__INITIAL_STATE__\s*=\s*({.+?})<\/script>/);
-        if (jsonMatch) {
-          const state = JSON.parse(jsonMatch[1]) as {
+        // Look for JSON-embedded data in script tags (common in modern portals).
+        // Use brace-depth counting to handle nested objects instead of a greedy/lazy regex.
+        const stateMatch = html.match(/<script[^>]*>window\.__INITIAL_STATE__\s*=\s*/);
+        if (stateMatch) {
+          const startIdx = stateMatch.index! + stateMatch[0].length;
+          let depth = 0;
+          let endIdx = startIdx;
+          for (; endIdx < html.length; endIdx++) {
+            if (html[endIdx] === "{") depth++;
+            else if (html[endIdx] === "}") {
+              depth--;
+              if (depth === 0) break;
+            }
+          }
+          const jsonStr = html.slice(startIdx, endIdx + 1);
+          try {
+            const state = JSON.parse(jsonStr) as {
             devices?: Array<{
               regNo?: string;
               deviceName?: string;
@@ -128,6 +141,9 @@ export class CdscoSource implements SourceConnector {
                 productCode: device.regNo,
               });
             }
+          }
+          } catch {
+            // JSON parse failed — embedded state may be malformed
           }
         }
       }

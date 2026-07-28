@@ -112,6 +112,7 @@ export class AnvisaSource implements SourceConnector {
           const nameIdx = headers.findIndex((h) => h.includes("produto") || h.includes("nome"));
           const regIdx = headers.findIndex((h) => h.includes("registro") || h.includes("numero"));
           const manfIdx = headers.findIndex((h) => h.includes("fabricante") || h.includes("empresa"));
+          const riskIdx = headers.findIndex((h) => h.includes("risco") || h.includes("classe") || h.includes("categoria"));
 
           for (let i = 1; i < Math.min(lines.length, config.maxSignalsPerSource); i++) {
             const cols = lines[i].split(",");
@@ -128,7 +129,7 @@ export class AnvisaSource implements SourceConnector {
               url: CSV_URL,
               companyName: manfIdx >= 0 ? cols[manfIdx]?.replace(/"/g, "") : undefined,
               productName,
-              productCode: regNumber,
+              productCode: riskIdx >= 0 ? cols[riskIdx]?.replace(/"/g, "") : undefined,
               metadata: { rawRow: lines[i].substring(0, 200) },
             });
           }

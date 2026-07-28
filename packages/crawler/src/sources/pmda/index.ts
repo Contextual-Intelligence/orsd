@@ -129,19 +129,20 @@ function formatJpDate(dateStr?: string): string {
   if (!dateStr) return "";
   // Already ISO
   if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr;
-  // Japanese era format: 令和X年M月D日
-  const eraMatch = dateStr.match(/^([令和平成昭和])和?(\d+)年(\d+)月(\d+)日/);
+  // Japanese era format: 令和X年M月D日 or 平成X年M月D日
+  // Full era names (令和, 平成, 昭和) to avoid false splits on individual chars.
+  const eraMatch = dateStr.match(/^(令和|平成|昭和)(\d+)年(\d+)月(\d+)日/);
   if (eraMatch) {
     const eraYear = parseInt(eraMatch[2], 10);
     const month = eraMatch[3].padStart(2, "0");
     const day = eraMatch[4].padStart(2, "0");
-    if (eraMatch[1] === "令" || eraMatch[1] === "令和") {
+    if (eraMatch[1] === "令和") {
       return `${2019 + eraYear}-${month}-${day}`;
     }
-    if (eraMatch[1] === "平" || eraMatch[1] === "平成") {
+    if (eraMatch[1] === "平成") {
       return `${1989 + eraYear - 1}-${month}-${day}`;
     }
-    if (eraMatch[1] === "昭" || eraMatch[1] === "昭和") {
+    if (eraMatch[1] === "昭和") {
       return `${1926 + eraYear - 1}-${month}-${day}`;
     }
   }

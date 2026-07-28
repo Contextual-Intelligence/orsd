@@ -220,9 +220,11 @@ function buildBatchMutation(signals: NormalizedSignal[]): string {
   const inputs = signals
     .map((s) => {
       const confidence = s.confidence === "high" ? 0.9 : s.confidence === "medium" ? 0.6 : 0.3;
-      const metaEntries = s.metadata && Object.keys(s.metadata).length > 0
-        ? Object.entries(s.metadata).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")
-        : "";
+      // Serialise metadata as individual "key: value" strings in the Dgraph [String!] array.
+  // Use JSON.stringify for the value to preserve structure (strings get quotes, numbers stay bare).
+  const metadataItems = s.metadata && Object.keys(s.metadata).length > 0
+        ? Object.entries(s.metadata).map(([k, v]) => JSON.stringify(`${k}: ${JSON.stringify(v)}`))
+        : [];
 
       return `{
         id: ${JSON.stringify(s.id)},
@@ -239,7 +241,7 @@ function buildBatchMutation(signals: NormalizedSignal[]): string {
         productName: ${JSON.stringify(s.productName ?? "")},
         productCode: ${JSON.stringify(s.productCode ?? "")},
         ingestedAt: ${JSON.stringify(s.ingestedAt)}
-        ${metaEntries ? `, metadata: [${JSON.stringify(metaEntries)}]` : ""}
+        ${metadataItems.length > 0 ? `, metadata: [${metadataItems.join(", ")}]` : ""}
       }`;
     })
     .join(",\n");
