@@ -33,7 +33,7 @@ describe("normalizeSignals", () => {
     expect(result.confidence).toBe("medium");
     expect(result.ingestedAt).toBeTruthy();
     expect(result.id).toBeTruthy();
-    expect(result.id.length).toBe(32); // SHA-256 hex, truncated
+    expect(result.id.length).toBe(64); // SHA-256 hex, full
   });
 
   it("should generate deterministic IDs from source + externalId", () => {

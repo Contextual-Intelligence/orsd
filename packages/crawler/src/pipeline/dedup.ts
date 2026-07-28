@@ -55,10 +55,10 @@ export async function deduplicateSignals(
  * Must match the logic in etl/normalize.ts.
  */
 export function computeOrsdId(source: string, externalId: string): string {
+  // Must match the algorithm in etl/normalize.ts
   return createHash("sha256")
     .update(`${source}:${externalId}`)
-    .digest("hex")
-    .slice(0, 32);
+    .digest("hex");
 }
 
 /**

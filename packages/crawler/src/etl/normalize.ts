@@ -20,10 +20,10 @@ function normalizeOne(raw: RawSignal): NormalizedSignal | null {
   }
 
   // Generate deterministic ORSD ID from source + externalId
+  // Full SHA-256 hex (no truncation) for true collision resistance.
   const id = createHash("sha256")
     .update(`${raw.source}:${raw.externalId}`)
-    .digest("hex")
-    .slice(0, 32);
+    .digest("hex");
 
   return {
     id,

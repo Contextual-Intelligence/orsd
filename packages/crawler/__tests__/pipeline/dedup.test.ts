@@ -44,9 +44,9 @@ describe("computeOrsdId", () => {
     expect(a).not.toBe(b);
   });
 
-  it("should return a 32-char hex string", () => {
+  it("should return a 64-char hex string (full SHA-256)", () => {
     const id = computeOrsdId("fda", "K123456");
-    expect(id).toMatch(/^[0-9a-f]{32}$/);
+    expect(id).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 
