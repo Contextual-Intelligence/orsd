@@ -15,6 +15,8 @@ export interface CrawlerConfig {
   maxSignalsPerSource: number;
   /** User-agent for HTTP requests */
   userAgent: string;
+  /** Webhook URL to notify after each source crawl (e.g. monorepo webhook) */
+  webhookUrl?: string;
 }
 
 function envStr(key: string, fallback: string): string {
@@ -35,5 +37,6 @@ export function loadConfig(): CrawlerConfig {
     defaultIntervalHours: envInt("CRAWL_INTERVAL_HOURS", 24),
     maxSignalsPerSource: envInt("MAX_SIGNALS_PER_SOURCE", 5000),
     userAgent: envStr("ORSD_USER_AGENT", "ORSD-Crawler/0.1"),
+    webhookUrl: process.env.WEBHOOK_URL || undefined,
   };
 }

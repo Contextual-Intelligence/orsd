@@ -45,27 +45,33 @@ export class MfdsSource implements SourceConnector {
 
     const apiKey = process.env.MFDS_API_KEY;
 
-    // Attempt 1: data.go.kr Open API
+    // Attempt 1: data.go.kr Open API (paginated)
     if (apiKey) {
       try {
-        const params = new URLSearchParams({
-          serviceKey: apiKey,
-          numOfRows: "100",
-          pageNo: "1",
-          type: "json",
-        });
-        const url = `${DATA_GO_KR_BASE}?${params}`;
-        const res = await fetch(url, {
-          headers: { "User-Agent": config.userAgent },
-          signal: AbortSignal.timeout(20_000),
-        });
+        let pageNo = 1;
+        let totalCount: number | undefined;
 
-        if (res.ok) {
+        do {
+          const params = new URLSearchParams({
+            serviceKey: apiKey,
+            numOfRows: "100",
+            pageNo: String(pageNo),
+            type: "json",
+          });
+          const url = `${DATA_GO_KR_BASE}?${params}`;
+          const res = await fetch(url, {
+            headers: { "User-Agent": config.userAgent },
+            signal: AbortSignal.timeout(20_000),
+          });
+
+          if (!res.ok) break;
+
           const data = (await res.json()) as {
             response?: {
               body?: {
                 items?: MfdsDevice[] | { item?: MfdsDevice | MfdsDevice[] };
                 totalCount?: number;
+                numOfRows?: number;
               };
             };
           };
@@ -79,6 +85,10 @@ export class MfdsSource implements SourceConnector {
           } else if (rawItems?.item) {
             items = Array.isArray(rawItems.item) ? rawItems.item : [rawItems.item];
           }
+
+          if (items.length === 0) break;
+
+          totalCount = body?.totalCount;
 
           for (const item of items) {
             signals.push({
@@ -101,7 +111,15 @@ export class MfdsSource implements SourceConnector {
               },
             });
           }
-        }
+
+          pageNo++;
+          await new Promise((r) => setTimeout(r, 500));
+        } while (
+          totalCount !== undefined &&
+          (pageNo - 1) * 100 < totalCount &&
+          pageNo <= 100 &&
+          signals.length < config.maxSignalsPerSource
+        );
       } catch {
         // API unavailable
       }
@@ -109,18 +127,23 @@ export class MfdsSource implements SourceConnector {
 
     if (signals.length > 0) return signals;
 
-    // Attempt 2: MFDS eMedDev portal scraping for embedded data
+    // Attempt 2: MFDS eMedDev portal API (paginated)
     try {
-      const url = `${MFDS_PORTAL}/api/device/list?page=1&size=100`;
-      const res = await fetch(url, {
-        headers: {
-          "User-Agent": config.userAgent,
-          "Accept": "application/json",
-        },
-        signal: AbortSignal.timeout(15_000),
-      });
+      let portalPage = 1;
+      const seenPortal = new Set<string>();
 
-      if (res.ok) {
+      while (portalPage <= 50 && signals.length < config.maxSignalsPerSource) {
+        const url = `${MFDS_PORTAL}/api/device/list?page=${portalPage}&size=100`;
+        const res = await fetch(url, {
+          headers: {
+            "User-Agent": config.userAgent,
+            "Accept": "application/json",
+          },
+          signal: AbortSignal.timeout(15_000),
+        });
+
+        if (!res.ok) break;
+
         const data = (await res.json()) as {
           data?: Array<{
             id?: string;
@@ -131,23 +154,30 @@ export class MfdsSource implements SourceConnector {
           }>;
         };
 
-        if (data.data) {
-          for (const item of data.data) {
-            signals.push({
-              externalId: `mfds-portal-${item.id ?? item.permitNo ?? "unknown"}`,
-              source: "mfds",
-              jurisdiction: "KR",
-              type: "MFDS_APPROVAL",
-              title: `MFDS — ${item.prductNm ?? "Unknown device"}`,
-              description: `Device: ${item.prductNm ?? "Unknown"}. Permit: ${item.permitNo ?? "N/A"}. Company: ${item.entrpsNm ?? "Unknown"}.`,
-              date: item.permitDate ?? "",
-              url: `${MFDS_PORTAL}/device/${item.id ?? ""}`,
-              companyName: item.entrpsNm,
-              productName: item.prductNm,
-              productCode: item.permitNo,
-            });
-          }
+        if (!data.data || data.data.length === 0) break;
+
+        for (const item of data.data) {
+          const dedupId = item.id ?? item.permitNo ?? item.prductNm;
+          if (!dedupId || seenPortal.has(dedupId)) continue;
+          seenPortal.add(dedupId);
+
+          signals.push({
+            externalId: `mfds-portal-${dedupId}`,
+            source: "mfds",
+            jurisdiction: "KR",
+            type: "MFDS_APPROVAL",
+            title: `MFDS — ${item.prductNm ?? "Unknown device"}`,
+            description: `Device: ${item.prductNm ?? "Unknown"}. Permit: ${item.permitNo ?? "N/A"}. Company: ${item.entrpsNm ?? "Unknown"}.`,
+            date: item.permitDate ?? "",
+            url: `${MFDS_PORTAL}/device/${item.id ?? ""}`,
+            companyName: item.entrpsNm,
+            productName: item.prductNm,
+            productCode: item.permitNo,
+          });
         }
+
+        portalPage++;
+        await new Promise((r) => setTimeout(r, 300));
       }
     } catch {
       // Portal scraping failed

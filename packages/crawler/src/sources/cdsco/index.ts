@@ -36,21 +36,26 @@ export class CdscoSource implements SourceConnector {
   async fetch(config: CrawlerConfig): Promise<RawSignal[]> {
     const signals: RawSignal[] = [];
 
-    // Attempt 1: Try the data.gov.in Open API
+    // Attempt 1: Try the data.gov.in Open API (paginated)
     try {
-      const params = new URLSearchParams({
-        "api-key": process.env.DATA_GOV_IN_API_KEY ?? "demo",
-        format: "json",
-        limit: "100",
-        offset: "0",
-      });
-      const url = `${DATA_GOV_IN_API}/${DEVICE_REGISTRATION_DATASET}?${params}`;
-      const res = await fetch(url, {
-        headers: { "User-Agent": config.userAgent },
-        signal: AbortSignal.timeout(15_000),
-      });
+      let offset = 0;
+      const limit = 100;
 
-      if (res.ok) {
+      while (signals.length < config.maxSignalsPerSource) {
+        const params = new URLSearchParams({
+          "api-key": process.env.DATA_GOV_IN_API_KEY ?? "demo",
+          format: "json",
+          limit: String(limit),
+          offset: String(offset),
+        });
+        const url = `${DATA_GOV_IN_API}/${DEVICE_REGISTRATION_DATASET}?${params}`;
+        const res = await fetch(url, {
+          headers: { "User-Agent": config.userAgent },
+          signal: AbortSignal.timeout(15_000),
+        });
+
+        if (!res.ok) break;
+
         const data = (await res.json()) as {
           records?: Array<{
             registration_number?: string;
@@ -63,28 +68,32 @@ export class CdscoSource implements SourceConnector {
           total?: number;
         };
 
-        if (data.records) {
-          for (const item of data.records) {
-            signals.push({
-              externalId: `cdsco-${item.registration_number ?? item.device_name ?? "unknown"}`,
-              source: "cdsco",
-              jurisdiction: "IN",
-              type: "CDSCO_REGISTRATION",
-              title: `CDSCO Registration — ${item.device_name ?? "Unknown device"}`,
-              description: `CDSCO registration ${item.registration_number ?? "N/A"}: ${item.device_name ?? "Unknown device"} by ${item.manufacturer_name ?? "Unknown manufacturer"}. Risk class: ${item.risk_class ?? "N/A"}. Valid until: ${item.valid_upto ?? "N/A"}.`,
-              date: item.registration_date ?? "",
-              url: `${CDSCO_PORTAL}?search=${encodeURIComponent(item.registration_number ?? "")}`,
-              companyName: item.manufacturer_name,
-              productName: item.device_name,
-              productCode: item.registration_number,
-              metadata: {
-                registrationNumber: item.registration_number,
-                validUpto: item.valid_upto,
-                riskClass: item.risk_class,
-              },
-            });
-          }
+        if (!data.records || data.records.length === 0) break;
+
+        for (const item of data.records) {
+          signals.push({
+            externalId: `cdsco-${item.registration_number ?? item.device_name ?? "unknown"}`,
+            source: "cdsco",
+            jurisdiction: "IN",
+            type: "CDSCO_REGISTRATION",
+            title: `CDSCO Registration — ${item.device_name ?? "Unknown device"}`,
+            description: `CDSCO registration ${item.registration_number ?? "N/A"}: ${item.device_name ?? "Unknown device"} by ${item.manufacturer_name ?? "Unknown manufacturer"}. Risk class: ${item.risk_class ?? "N/A"}. Valid until: ${item.valid_upto ?? "N/A"}.`,
+            date: item.registration_date ?? "",
+            url: `${CDSCO_PORTAL}?search=${encodeURIComponent(item.registration_number ?? "")}`,
+            companyName: item.manufacturer_name,
+            productName: item.device_name,
+            productCode: item.registration_number,
+            metadata: {
+              registrationNumber: item.registration_number,
+              validUpto: item.valid_upto,
+              riskClass: item.risk_class,
+            },
+          });
         }
+
+        offset += limit;
+        if (data.total !== undefined && offset >= data.total) break;
+        await new Promise((r) => setTimeout(r, 300));
       }
     } catch {
       // data.gov.in unavailable

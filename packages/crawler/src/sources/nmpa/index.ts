@@ -34,24 +34,28 @@ export class NmpaSource implements SourceConnector {
   async fetch(config: CrawlerConfig): Promise<RawSignal[]> {
     const signals: RawSignal[] = [];
 
-    // Attempt 1: Try the Chinese Government Open Data API
+    // Attempt 1: Try the Chinese Government Open Data API (paginated)
     try {
-      const params = new URLSearchParams({
-        dataset: "medical-device-registrations",
-        page: "1",
-        size: "100",
-      });
-      const url = `${DATA_GOV_CN_API}?${params}`;
-      const res = await fetch(url, {
-        headers: {
-          "User-Agent": config.userAgent,
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-        signal: AbortSignal.timeout(15_000),
-      });
+      let page = 1;
 
-      if (res.ok) {
+      while (signals.length < config.maxSignalsPerSource) {
+        const params = new URLSearchParams({
+          dataset: "medical-device-registrations",
+          page: String(page),
+          size: "100",
+        });
+        const url = `${DATA_GOV_CN_API}?${params}`;
+        const res = await fetch(url, {
+          headers: {
+            "User-Agent": config.userAgent,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          signal: AbortSignal.timeout(15_000),
+        });
+
+        if (!res.ok) break;
+
         const data = (await res.json()) as {
           data?: Array<{
             id?: string;
@@ -65,28 +69,33 @@ export class NmpaSource implements SourceConnector {
           total?: number;
         };
 
-        if (data.data) {
-          for (const item of data.data) {
-            signals.push({
-              externalId: `nmpa-${item.registrationNumber ?? item.id ?? item.productName ?? "unknown"}`,
-              source: "nmpa",
-              jurisdiction: "CN",
-              type: "NMPA_APPROVAL",
-              title: `NMPA Approval — ${item.productName ?? "Unknown product"}`,
-              description: `NMPA approval ${item.registrationNumber ?? "N/A"}: ${item.productName ?? "Unknown product"} by ${item.companyName ?? "Unknown manufacturer"}.`,
-              date: item.approvalDate ?? "",
-              url: `https://www.nmpa.gov.cn/datasearch/search?name=${encodeURIComponent(item.productName ?? "")}`,
-              companyName: item.companyName,
-              productName: item.productName,
-              productCode: item.registrationNumber,
-              metadata: {
-                registrationNumber: item.registrationNumber,
-                expiryDate: item.expiryDate,
-                category: item.category,
-              },
-            });
-          }
+        if (!data.data || data.data.length === 0) break;
+
+        for (const item of data.data) {
+          signals.push({
+            externalId: `nmpa-${item.registrationNumber ?? item.id ?? item.productName ?? "unknown"}`,
+            source: "nmpa",
+            jurisdiction: "CN",
+            type: "NMPA_APPROVAL",
+            title: `NMPA Approval — ${item.productName ?? "Unknown product"}`,
+            description: `NMPA approval ${item.registrationNumber ?? "N/A"}: ${item.productName ?? "Unknown product"} by ${item.companyName ?? "Unknown manufacturer"}.`,
+            date: item.approvalDate ?? "",
+            url: `https://www.nmpa.gov.cn/datasearch/search?name=${encodeURIComponent(item.productName ?? "")}`,
+            companyName: item.companyName,
+            productName: item.productName,
+            productCode: item.registrationNumber,
+            metadata: {
+              registrationNumber: item.registrationNumber,
+              expiryDate: item.expiryDate,
+              category: item.category,
+            },
+          });
         }
+
+        page++;
+        // data.gov.cn typically returns total in response, use page limit as fallback
+        if (data.total !== undefined && (page - 1) * 100 >= data.total) break;
+        await new Promise((r) => setTimeout(r, 500));
       }
     } catch {
       // Open data API unavailable

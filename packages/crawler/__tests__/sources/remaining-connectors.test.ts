@@ -94,14 +94,14 @@ describe("NmpaSource", () => {
   });
 
   it("should handle data.gov.cn API response", async () => {
-    // NMPA connector has multiple fallback strategies
-    // Mock success for all of them with different shapes
+    // NMPA connector now has pagination — mock returns data with total=1 so loop breaks
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo) => {
       const urlStr = typeof url === "string" ? url : url.toString();
       if (urlStr.includes("data.gov.cn")) {
         return new Response(
           JSON.stringify({
-            data: [{ id: "CN-001", name: "CT Scanner", company: "联影医疗" }],
+            data: [{ id: "CN-001", productName: "CT Scanner", companyName: "联影医疗", registrationNumber: "CN-001" }],
+            total: 1,
           }),
           { status: 200 },
         );

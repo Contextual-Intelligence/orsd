@@ -71,12 +71,24 @@ export class EudamedSource implements SourceConnector {
   async fetch(config: CrawlerConfig): Promise<RawSignal[]> {
     const signals: RawSignal[] = [];
 
-    // Try the public certificates API
-    const certUrl = `${PUBLIC_API_BASE}/certificates/search?page=0&size=100&sort=issueDate,desc`;
-    const certData = await fetchJson<EudamedApiResponse>(certUrl, config);
+    // Try the public certificates API (paginated)
+    let page = 0;
+    const certResults: EudamedCertificate[] = [];
 
-    if (certData?.content) {
-      for (const cert of certData.content) {
+    while (page < 50 && certResults.length < config.maxSignalsPerSource) {
+      const certUrl = `${PUBLIC_API_BASE}/certificates/search?page=${page}&size=100&sort=issueDate,desc`;
+      const certData = await fetchJson<EudamedApiResponse>(certUrl, config);
+
+      if (!certData?.content || certData.content.length === 0) break;
+      certResults.push(...certData.content);
+      // Stop if we've exhausted all pages
+      if (certData.totalPages !== undefined && page >= certData.totalPages - 1) break;
+      page++;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    if (certResults.length > 0) {
+      for (const cert of certResults) {
         signals.push({
           externalId: `eudamed-cert-${cert.certificateNumber ?? "unknown"}`,
           source: "eudamed",
@@ -99,7 +111,9 @@ export class EudamedSource implements SourceConnector {
           },
         });
       }
-    } else {
+    }
+
+    if (signals.length === 0) {
       // Fallback: scrape the public dashboard summary page
       const dashboardSignals = await this.fetchDashboardFallback(config);
       signals.push(...dashboardSignals);

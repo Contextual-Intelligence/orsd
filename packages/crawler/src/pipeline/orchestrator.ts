@@ -152,6 +152,34 @@ export async function crawlSource(
   }
 
   result.durationMs = Date.now() - start;
+
+  // Notify webhook if configured (e.g. monorepo ingestion webhook)
+  if (config.webhookUrl && result.ingested > 0) {
+    try {
+      await fetch(config.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "orsd:signal-ingested",
+          source: result.source,
+          jurisdiction: result.jurisdiction,
+          ingested: result.ingested,
+          fetched: result.fetched,
+          normalized: result.normalized,
+          deduplicated: result.deduplicated,
+          durationMs: result.durationMs,
+          errors: result.errors,
+        }),
+        signal: AbortSignal.timeout(10_000),
+      }).catch(() => {
+        // Webhook failures are non-critical — log and continue
+        logger.warn("Webhook notification failed");
+      });
+    } catch {
+      logger.warn("Webhook notification threw");
+    }
+  }
+
   return result;
 }
 

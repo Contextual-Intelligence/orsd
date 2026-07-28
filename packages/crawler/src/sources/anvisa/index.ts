@@ -50,46 +50,58 @@ export class AnvisaSource implements SourceConnector {
   async fetch(config: CrawlerConfig): Promise<RawSignal[]> {
     const signals: RawSignal[] = [];
 
-    // Try the ANVISA Open Data API first
+    // Try the ANVISA Open Data API first (with pagination)
     try {
-      const url = `${API_BASE}/produtos-medicos/v1/produtos?pagina=0&tamanho=100`;
-      const res = await fetch(url, {
-        headers: {
-          "User-Agent": config.userAgent,
-          "Accept": "application/json",
-        },
-        signal: AbortSignal.timeout(20_000),
-      });
+      let page = 0;
+      let totalPages = 1;
 
-      if (res.ok) {
-        const data = (await res.json()) as {
-          content?: AnvisaApiProduct[];
-          totalPages?: number;
-        };
+      while (page < totalPages && signals.length < config.maxSignalsPerSource) {
+        const url = `${API_BASE}/produtos-medicos/v1/produtos?pagina=${page}&tamanho=100`;
+        const res = await fetch(url, {
+          headers: {
+            "User-Agent": config.userAgent,
+            "Accept": "application/json",
+          },
+          signal: AbortSignal.timeout(20_000),
+        });
 
-        if (data.content) {
-          for (const item of data.content) {
-            signals.push({
-              externalId: `anvisa-${item.numeroRegistro ?? item.nomeProduto ?? "unknown"}`,
-              source: "anvisa",
-              jurisdiction: "BR",
-              type: "ANVISA_REGISTRATION",
-              title: `ANVISA Registration — ${item.nomeProduto ?? "Unknown product"}`,
-              description: `ANVISA registration ${item.numeroRegistro ?? "N/A"}: ${item.nomeProduto ?? "Unknown product"} by ${item.nomeFabricante ?? "Unknown manufacturer"}. Risk class: ${item.categoriaRisco ?? "N/A"}.`,
-              date: parseBrDate(item.dataConcessao),
-              url: `${CSV_URL}?search=${encodeURIComponent(item.numeroRegistro ?? "")}`,
-              companyName: item.nomeFabricante,
-              productName: item.nomeProduto,
-              productCode: item.categoriaRisco,
-              metadata: {
-                registrationNumber: item.numeroRegistro,
-                riskCategory: item.categoriaRisco,
-                validityDate: parseBrDate(item.dataValidade),
-                productClass: item.classeProduto,
-              },
-            });
+        if (res.ok) {
+          const data = (await res.json()) as {
+            content?: AnvisaApiProduct[];
+            totalPages?: number;
+          };
+
+          if (data.content && data.content.length > 0) {
+            totalPages = data.totalPages ?? 1;
+            for (const item of data.content) {
+              signals.push({
+                externalId: `anvisa-${item.numeroRegistro ?? item.nomeProduto ?? "unknown"}`,
+                source: "anvisa",
+                jurisdiction: "BR",
+                type: "ANVISA_REGISTRATION",
+                title: `ANVISA Registration — ${item.nomeProduto ?? "Unknown product"}`,
+                description: `ANVISA registration ${item.numeroRegistro ?? "N/A"}: ${item.nomeProduto ?? "Unknown product"} by ${item.nomeFabricante ?? "Unknown manufacturer"}. Risk class: ${item.categoriaRisco ?? "N/A"}.`,
+                date: parseBrDate(item.dataConcessao),
+                url: `${CSV_URL}?search=${encodeURIComponent(item.numeroRegistro ?? "")}`,
+                companyName: item.nomeFabricante,
+                productName: item.nomeProduto,
+                productCode: item.categoriaRisco,
+                metadata: {
+                  registrationNumber: item.numeroRegistro,
+                  riskCategory: item.categoriaRisco,
+                  validityDate: parseBrDate(item.dataValidade),
+                  productClass: item.classeProduto,
+                },
+              });
+            }
+          } else {
+            break;
           }
+        } else {
+          break;
         }
+        page++;
+        await new Promise((r) => setTimeout(r, 300));
       }
     } catch {
       // API unavailable — fallback will return empty
