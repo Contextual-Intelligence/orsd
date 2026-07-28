@@ -62,17 +62,27 @@ describe("API routes", () => {
     expect(res.body.meta.version).toBe("0.1");
   });
 
-  it("GET /v1/signals should support pagination params", async () => {
+  it("GET /v1/signals should support pagination and return all fields", async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(
         JSON.stringify({
           data: {
             querySignal: Array.from({ length: 50 }, (_, i) => ({
+              id: `sig-${i}`,
+              externalId: `ext-${i}`,
+              source: "fda",
+              jurisdiction: "US",
               type: "FDA_510K",
+              title: `Signal ${i}`,
               date: "2026-01-01",
               confidence: 0.9,
-              description: `Signal ${i}`,
-              url: "",
+              description: `Description ${i}`,
+              url: "https://example.com/sig",
+              companyName: "TestCorp",
+              productName: "Test Device",
+              productCode: "ABC",
+              metadata: [],
+              ingestedAt: "2026-01-01T00:00:00.000Z",
             })),
           },
         }),
@@ -84,6 +94,35 @@ describe("API routes", () => {
     expect(res.body.data).toHaveLength(50);
     expect(res.body.meta.limit).toBe(50);
     expect(res.body.meta.offset).toBe(0);
+
+    // Verify all fields are returned
+    const first = res.body.data[0];
+    expect(first.id).toBe("sig-0");
+    expect(first.externalId).toBe("ext-0");
+    expect(first.source).toBe("fda");
+    expect(first.jurisdiction).toBe("US");
+    expect(first.companyName).toBe("TestCorp");
+    expect(first.productName).toBe("Test Device");
+    expect(first.ingestedAt).toBeDefined();
+  });
+
+  it("GET /v1/signals should filter by type", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            querySignal: [
+              { type: "FDA_510K", date: "2026-01-01", confidence: 0.9, description: "A", url: "" },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const res = await request.get("/v1/signals?type=FDA_510K").expect(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].type).toBe("FDA_510K");
   });
 
   it("GET /v1/stats should return coverage info", async () => {

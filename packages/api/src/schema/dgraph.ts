@@ -1,11 +1,9 @@
 /**
- * ORSD Dgraph Schema — extracted from monorepo leads/dgraph/schema.ts
+ * ORSD Dgraph Schema
  *
- * This is the canonical data model for the Open Regulatory Signal Dataset.
- * It defines Company, Product, Application, and Signal types stored in Dgraph.
- *
- * Note: This schema is the ORSD-owned copy. The monorepo previously used a
- * shared copy in the Leads app. Over time, the Leads schema may diverge.
+ * Defines Company, Product, Application, and Signal types.
+ * The Signal type captures all NormalizedSignal fields so that
+ * no data is lost between the crawler's enrich phase and API reads.
  */
 
 export const ORSD_DGRAPH_SCHEMA = `
@@ -38,10 +36,19 @@ type Application {
 
 type Signal {
   id: ID!
+  externalId: String! @search(by: [hash])
+  source: String! @search(by: [hash])
+  jurisdiction: String! @search(by: [hash])
   type: String! @search(by: [hash])
+  title: String @search(by: [fulltext])
   date: String! @search(by: [exact])
   confidence: Float
   description: String
   url: String
+  companyName: String @search(by: [fulltext])
+  productName: String @search(by: [fulltext])
+  productCode: String @search(by: [hash])
+  metadata: [String!]
+  ingestedAt: String @search(by: [exact])
 }
 `;

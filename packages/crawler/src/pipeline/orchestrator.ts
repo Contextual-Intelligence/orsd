@@ -4,6 +4,9 @@
  * Coordinates fetching from all registered source connectors,
  * runs ETL (normalize + enrich + dedup + confidence scoring),
  * and writes results to Dgraph in batches.
+ *
+ * The batch mutation writes ALL NormalizedSignal fields so that
+ * the Dgraph store is a faithful copy of the crawled data.
  */
 
 import pino from "pino";
@@ -110,6 +113,11 @@ export async function crawlSource(
     result.fetched = raw.length;
     logger.info({ count: raw.length }, "Fetched raw signals");
 
+    if (raw.length === 0) {
+      result.durationMs = Date.now() - start;
+      return result;
+    }
+
     // 2. Normalize to canonical shape
     const normalized: NormalizedSignal[] = normalizeSignals(raw);
     result.normalized = normalized.length;
@@ -169,16 +177,28 @@ async function batchWriteSignals(signals: NormalizedSignal[], config: ReturnType
       });
 
       if (res.ok) {
-        ingested += batch.length;
+        // Check for GraphQL errors in response even on HTTP 200
+        const body = await res.json();
+        if (body.errors) {
+          type GraphQlError = { message: string };
+          const msgs = (body.errors as GraphQlError[]).map((e) => e.message).join("; ");
+          logger.warn({ errors: msgs }, "GraphQL errors in batch response");
+          const individualResult = await fallbackIndividualWrites(batch, url);
+          ingested += individualResult.ingested;
+          failed += batch.length - individualResult.ingested;
+        } else {
+          ingested += batch.length;
+        }
       } else {
-        // Batch failed — fall back to individual writes for this batch
+        const text = await res.text().catch(() => "");
+        logger.warn({ status: res.status, body: text.slice(0, 200) }, "Batch write failed, falling back to individual writes");
         const individualResult = await fallbackIndividualWrites(batch, url);
         ingested += individualResult.ingested;
         failed += batch.length - individualResult.ingested;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.warn({ batch: i / BATCH_SIZE, error: msg }, "Batch write failed, falling back to individual writes");
+      logger.warn({ batch: i / BATCH_SIZE, error: msg }, "Batch write threw, falling back to individual writes");
       const individualResult = await fallbackIndividualWrites(batch, url);
       ingested += individualResult.ingested;
       failed += batch.length - individualResult.ingested;
@@ -192,17 +212,34 @@ async function batchWriteSignals(signals: NormalizedSignal[], config: ReturnType
   return ingested;
 }
 
+/**
+ * Build a Dgraph GraphQL mutation string for a batch of signals.
+ * Includes ALL NormalizedSignal fields for a faithful data copy.
+ */
 function buildBatchMutation(signals: NormalizedSignal[]): string {
   const inputs = signals
     .map((s) => {
       const confidence = s.confidence === "high" ? 0.9 : s.confidence === "medium" ? 0.6 : 0.3;
+      const metaEntries = s.metadata && Object.keys(s.metadata).length > 0
+        ? Object.entries(s.metadata).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")
+        : "";
+
       return `{
         id: ${JSON.stringify(s.id)},
+        externalId: ${JSON.stringify(s.externalId)},
+        source: ${JSON.stringify(s.source)},
+        jurisdiction: ${JSON.stringify(s.jurisdiction)},
         type: ${JSON.stringify(s.type)},
+        title: ${JSON.stringify(s.title ?? "")},
         date: ${JSON.stringify(s.date)},
         confidence: ${confidence},
         description: ${JSON.stringify(s.description?.slice(0, 5000) ?? "")},
-        url: ${JSON.stringify(s.url ?? "")}
+        url: ${JSON.stringify(s.url ?? "")},
+        companyName: ${JSON.stringify(s.companyName ?? "")},
+        productName: ${JSON.stringify(s.productName ?? "")},
+        productCode: ${JSON.stringify(s.productCode ?? "")},
+        ingestedAt: ${JSON.stringify(s.ingestedAt)}
+        ${metaEntries ? `, metadata: [${JSON.stringify(metaEntries)}]` : ""}
       }`;
     })
     .join(",\n");
@@ -227,7 +264,8 @@ async function fallbackIndividualWrites(
       });
 
       if (res.ok) {
-        ingested++;
+        const body = await res.json().catch(() => ({}));
+        if (!body.errors) ingested++;
       }
     } catch {
       // Individual failure — skip this signal
