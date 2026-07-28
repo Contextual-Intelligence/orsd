@@ -2,8 +2,11 @@
  * ORSD Dgraph Schema
  *
  * Defines Company, Product, Application, and Signal types.
- * The Signal type captures all NormalizedSignal fields so that
- * no data is lost between the crawler's enrich phase and API reads.
+ *
+ * IMPORTANT: Signal.id uses String! @id (not ID!) so that we can
+ * assign deterministic ORSD IDs (SHA-256 of source:externalId).
+ * If ID! were used without @id, Dgraph would auto-generate UIDs
+ * and our dedup would never match.
  */
 
 export const ORSD_DGRAPH_SCHEMA = `
@@ -35,7 +38,7 @@ type Application {
 }
 
 type Signal {
-  id: ID!
+  id: String! @id
   externalId: String! @search(by: [hash])
   source: String! @search(by: [hash])
   jurisdiction: String! @search(by: [hash])
