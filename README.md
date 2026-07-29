@@ -1,6 +1,6 @@
 # Open Regulatory Signal Dataset (ORSD)
 
-A public dataset of regulatory signals — FDA clearances, clinical trials, EUDAMED certifications, and market-moving regulatory news — aggregated from **22+ data sources across 10 regulatory jurisdictions**.
+A public dataset of regulatory signals — FDA clearances, clinical trials, EUDAMED certifications, and market-moving regulatory news — aggregated from **data sources across global regulatory jurisdictions**.
 
 [![CI](https://github.com/Contextual-Intelligence/orsd/actions/workflows/ci.yml/badge.svg)](https://github.com/Contextual-Intelligence/orsd/actions/workflows/ci.yml)
 [![License: ODbL v1.0](https://img.shields.io/badge/License-ODbL%201.0-blue.svg)](https://opendatacommons.org/licenses/odbl/1-0/)
