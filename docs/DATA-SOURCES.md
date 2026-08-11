@@ -19,6 +19,7 @@ compilation is licensed under ODbL v1.0.
 | Source | Data Type | License | Status |
 |--------|-----------|---------|--------|
 | EUDAMED | Device certificates, NB opinions, clinical investigations | EU open data | ✅ Integrated (public API) |
+| EU legislation | Digital-strategy acts (CRA, AI Act, Data Act, NIS2, GDPR, Machinery Regulation) | EU open data (EUR-Lex) | ✅ Integrated (EUR-Lex SPARQL + curated registry) |
 
 ## Brazil (BR)
 

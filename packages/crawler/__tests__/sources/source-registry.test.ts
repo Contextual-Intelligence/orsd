@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { getAllSources, getSource } from "../../src/sources/index.js";
 
 describe("source registry", () => {
-  it("should register all 11 sources", () => {
+  it("should register all 12 sources", () => {
     const sources = getAllSources();
-    expect(sources).toHaveLength(11);
+    expect(sources).toHaveLength(12);
   });
 
   it("should include all expected sources", () => {
@@ -13,6 +13,7 @@ describe("source registry", () => {
       "anvisa",
       "cdsco",
       "clinicaltrials",
+      "eu-legislation",
       "eudamed",
       "fda",
       "health_canada",
@@ -27,9 +28,9 @@ describe("source registry", () => {
   it("should cover all 10 jurisdictions", () => {
     const jurs = getAllSources().map((s) => s.jurisdiction).sort();
     expect(jurs).toEqual([
-      "AU", "BR", "CA", "CN", "EU", "IN", "JP", "KR", "US", "US", "WHO",
+      "AU", "BR", "CA", "CN", "EU", "EU", "IN", "JP", "KR", "US", "US", "WHO",
     ]);
-    // Note: FDA + ClinicalTrials are both US
+    // Note: FDA + ClinicalTrials are both US; EUDAMED + EU-Legislation are both EU
   });
 
   it("should look up a source by name", () => {

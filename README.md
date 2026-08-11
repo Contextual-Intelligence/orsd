@@ -20,7 +20,7 @@ npm run build
 # 3. Start Dgraph + API (via Docker Compose)
 docker compose -f deploy/docker-compose.yml up -d
 
-# 4. Run a crawl (ingests from all 11 sources into Dgraph)
+# 4. Run a crawl (ingests from all 12 sources into Dgraph)
 npm run crawl
 
 # 5. Explore the API
@@ -138,6 +138,7 @@ Each connector implements a multi-strategy fallback: primary API → CSV/scrape 
 | 🇺🇸 US | FDA (510(k), PMA, De Novo, CLIA) | `fda` | API (open.fda.gov) |
 | 🇺🇸 US | ClinicalTrials.gov | `clinicaltrials` | API v2 (paginated) |
 | 🇪🇺 EU | EUDAMED | `eudamed` | Public API → dashboard |
+| 🇪🇺 EU | EU legislation (CRA, AI Act, NIS2, GDPR, …) | `eu-legislation` | EUR-Lex SPARQL → curated registry |
 | 🇧🇷 Brazil | ANVISA | `anvisa` | Open Data API → CSV |
 | 🇯🇵 Japan | PMDA | `pmda` | CSV export → API |
 | 🇮🇳 India | CDSCO | `cdsco` | data.gov.in API → portal |

@@ -20,6 +20,7 @@ const SOURCE_RELIABILITY: Record<string, number> = {
   mfds: 0.75,
   who: 0.90,
   clinicaltrials: 0.80,
+  "eu-legislation": 0.95, // official EUR-Lex metadata — highly reliable
   news: 0.50,
 };
 

@@ -42,7 +42,7 @@ interface DgraphResult {
 /** Known valid values for enum-like filters (allow-listed or use SAFE_STRING). */
 const KNOWN_SOURCES = [
   "fda", "clinicaltrials", "eudamed", "anvisa", "pmda", "cdsco",
-  "nmpa", "tga", "health_canada", "mfds", "who",
+  "nmpa", "tga", "health_canada", "mfds", "who", "eu-legislation",
 ] as const;
 
 const KNOWN_JURISDICTIONS = ["US", "EU", "BR", "CN", "JP", "IN", "KR", "AU", "CA", "WHO"] as const;
@@ -91,7 +91,7 @@ router.get("/", async (req: Request, res: Response) => {
         error: "invalid_filter",
         message: "Filter values must be alphanumeric (underscores/hyphens allowed). " +
           "source must be one of: fda, clinicaltrials, eudamed, anvisa, pmda, cdsco, " +
-          "nmpa, tga, health_canada, mfds, who. " +
+          "nmpa, tga, health_canada, mfds, who, eu-legislation. " +
           "jurisdiction must be one of: US, EU, BR, CN, JP, IN, KR, AU, CA, WHO.",
       });
       return;
