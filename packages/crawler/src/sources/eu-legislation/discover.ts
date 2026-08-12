@@ -269,7 +269,7 @@ export function classifyAct(act: DiscoveredAct): "promoted" | "review" | "reject
 
 // ─── Watermark persistence ───────────────────────────────────────────────────
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -288,6 +288,8 @@ export function loadWatermark(): DiscoveryWatermark | null {
 
 export function saveWatermark(wm: DiscoveryWatermark): void {
   try {
+    const dir = dirname(WATERMARK_PATH);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     writeFileSync(WATERMARK_PATH, JSON.stringify(wm, null, 2));
   } catch (err) {
     console.error("Failed to save watermark:", err);

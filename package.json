@@ -17,6 +17,7 @@
     "dev:api": "npm -w packages/api run dev",
     "dev:crawler": "npm -w packages/crawler run dev",
     "crawl": "npm -w packages/crawler run start",
+    "discover": "npm -w packages/crawler run discover",
     "start:api": "npm -w packages/api run start"
   },
   "devDependencies": {

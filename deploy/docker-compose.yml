@@ -54,5 +54,21 @@ services:
     profiles:
       - crawl
 
+  discover:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.crawler
+    command: ["node", "dist/sources/eu-legislation/discover.js"]
+    environment:
+      DGRAPH_URL: http://dgraph:8080
+    volumes:
+      - discover_data:/app/data
+    depends_on:
+      dgraph:
+        condition: service_healthy
+    profiles:
+      - discover
+
 volumes:
   dgraph_data:
+  discover_data:
