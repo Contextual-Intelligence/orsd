@@ -138,7 +138,18 @@ Each connector implements a multi-strategy fallback: primary API → CSV/scrape 
 | 🇺🇸 US | FDA (510(k), PMA, De Novo, CLIA) | `fda` | API (open.fda.gov) |
 | 🇺🇸 US | ClinicalTrials.gov | `clinicaltrials` | API v2 (paginated) |
 | 🇪🇺 EU | EUDAMED | `eudamed` | Public API → dashboard |
-| 🇪🇺 EU | EU legislation (CRA, AI Act, NIS2, GDPR, DORA, MiCA, EHDS, …) | `eu-legislation` | EUR-Lex SPARQL → curated registry (22 acts) |
+| 🇪🇺 EU | EU legislation (CRA, AI Act, NIS2, GDPR, DORA, MiCA, EHDS, …) | `eu-legislation` | EUR-Lex SPARQL → curated registry (22 acts) + automated discovery |
+
+## Automated Discovery
+
+The `eu-legislation` source includes an automated discovery module (`discover.ts`) that:
+
+1. **Batch refreshes** all known CELEX IDs via a single SPARQL query (chunked in 10s)
+2. **Scans** EUR-Lex for new regulations/directives by year, with in-query keyword pre-filtering
+3. **Scores** relevance (cyber=10, AI=10, data=8, digital=8, platform=7, …) — acts scoring ≥15 are auto-promoted, ≥5 go to a review queue
+4. **Persists** a watermark to `data/eu-legislation-watermark.json` for incremental scans
+
+Run: `npx tsx packages/crawler/src/sources/eu-legislation/discover.ts --dry-run --year 2025`
 | 🇧🇷 Brazil | ANVISA | `anvisa` | Open Data API → CSV |
 | 🇯🇵 Japan | PMDA | `pmda` | CSV export → API |
 | 🇮🇳 India | CDSCO | `cdsco` | data.gov.in API → portal |
