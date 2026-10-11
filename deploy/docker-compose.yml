@@ -26,9 +26,10 @@ services:
     image: dgraph/standalone:v24.0.0
     network_mode: host
     # The image's /run.sh runs dgraph zero & dgraph alpha unchanged. We emulate
-    # that here so the alpha http/grpc ports leave :8080 and :9080 alone
-    # (promtail owns :9080; :8080 is contested on this host).
-    command: ["/bin/sh", "-c", "dgraph zero & exec dgraph alpha --http_port=18085 --grpc_port=19080"]
+    # that here with an alpha port offset so http leaves :8080 and grpc leaves
+    # :9080 (promtail owns :9080; :8080 is contested): offset 10005 shifts
+    # internal 7080->17085, http 8080->18085, grpc 9080->19080.
+    command: ["/bin/sh", "-c", "dgraph zero & exec dgraph alpha --port_offset=10005"]
     environment:
       DGRAPH_ALPHA_SECURITY: "whitelist=0.0.0.0/0"
     volumes:
