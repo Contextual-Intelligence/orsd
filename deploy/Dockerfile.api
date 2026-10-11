@@ -15,6 +15,7 @@ RUN npm install
 
 # Copy API source and build
 COPY packages/api/ packages/api/
+COPY tsconfig.base.json ./
 RUN npm -w packages/api run build
 
 # Prune dev dependencies

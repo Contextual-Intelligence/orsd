@@ -15,6 +15,7 @@ RUN npm install
 
 # Copy crawler source and build
 COPY packages/crawler/ packages/crawler/
+COPY tsconfig.base.json ./
 RUN npm -w packages/crawler run build
 
 # Prune dev dependencies
