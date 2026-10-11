@@ -25,7 +25,12 @@ services:
   dgraph:
     image: dgraph/standalone:v24.0.0
     network_mode: host
-    command: ["dgraph", "standalone", "--http_port=18085", "--grpc_port=19080"]
+    # The image's /run.sh runs dgraph zero & dgraph alpha unchanged. We emulate
+    # that here so the alpha http/grpc ports leave :8080 and :9080 alone
+    # (promtail owns :9080; :8080 is contested on this host).
+    command: ["/bin/sh", "-c", "dgraph zero & exec dgraph alpha --http_port=18085 --grpc_port=19080"]
+    environment:
+      DGRAPH_ALPHA_SECURITY: "whitelist=0.0.0.0/0"
     volumes:
       - dgraph_data:/data
     restart: unless-stopped
