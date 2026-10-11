@@ -6,14 +6,22 @@
 # Usage:
 #   docker compose up -d              # start Dgraph + API
 #   docker compose run --rm crawler   # run a crawl on-demand
+#
+# Host networking note: the published ports are deliberately bound to the
+# loopback interface only. This host (OpenVZ) fails 0.0.0.0 DNAT rules
+# intermittently ("iptables: Memory allocation problem"), and its :9080 is
+# already taken by promtail. The API/crawler reach dgraph as
+# http://dgraph:8080 on the compose network, so host ports are debug-only:
+# 127.0.0.1:18085 (dgraph http) and 127.0.0.1:19080 (dgraph grpc) sit out of
+# the way of the fleet's shared ports.
 # ──────────────────────────────────────────────────────────────────────────────
 
 services:
   dgraph:
     image: dgraph/standalone:v24.0.0
     ports:
-      - "8080:8080"
-      - "9080:9080"
+      - "127.0.0.1:18085:8080"
+      - "127.0.0.1:19080:9080"
     volumes:
       - dgraph_data:/data
     healthcheck:
@@ -28,7 +36,7 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile.api
     ports:
-      - "3003:3003"
+      - "127.0.0.1:3003:3003"
     environment:
       DGRAPH_URL: http://dgraph:8080
       PORT: "3003"
