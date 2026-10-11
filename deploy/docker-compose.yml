@@ -7,25 +7,30 @@
 #   docker compose up -d              # start Dgraph + API
 #   docker compose run --rm crawler   # run a crawl on-demand
 #
-# Host networking note: the published ports are deliberately bound to the
-# loopback interface only. This host (OpenVZ) fails 0.0.0.0 DNAT rules
-# intermittently ("iptables: Memory allocation problem"), and its :9080 is
-# already taken by promtail. The API/crawler reach dgraph as
-# http://dgraph:8080 on the compose network, so host ports are debug-only:
-# 127.0.0.1:18085 (dgraph http) and 127.0.0.1:19080 (dgraph grpc) sit out of
-# the way of the fleet's shared ports.
+# Host networking note: every service uses network_mode: host on purpose. This
+# deploy target (an OpenVZ VPS) cannot reliably program iptables rules for
+# docker-published ports ("iptables: Memory allocation problem" whenever the
+# nat/raw rules for a new port are inserted — the VE's netfilter allocation is
+# saturated by the many stacks already running). Host networking needs no
+# published ports at all, so there is nothing for netfilter to do. The apps
+# bind loopback directly:
+#   - api              127.0.0.1:3003  (Traefik service 'orsd' dials this)
+#   - dgraph http      127.0.0.1:18085
+#   - dgraph grpc      127.0.0.1:19080  (host :9080 belongs to promtail)
+#   - dgraph internal  127.0.0.1:7080  (zero/alpha internals on 5080/6080)
+# The crawler/discover also run on host networking and use the same URLs.
 # ──────────────────────────────────────────────────────────────────────────────
 
 services:
   dgraph:
     image: dgraph/standalone:v24.0.0
-    ports:
-      - "127.0.0.1:18085:8080"
-      - "127.0.0.1:19080:9080"
+    network_mode: host
+    command: ["dgraph", "standalone", "--http_port=18085", "--grpc_port=19080"]
     volumes:
       - dgraph_data:/data
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:18085/health"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -35,16 +40,17 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
-    ports:
-      - "127.0.0.1:3003:3003"
+    network_mode: host
+    restart: unless-stopped
     environment:
-      DGRAPH_URL: http://dgraph:8080
+      DGRAPH_URL: http://127.0.0.1:18085
       PORT: "3003"
     depends_on:
       dgraph:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3003/api/health"]
+      # node:22-alpine has no curl; node 22 ships global fetch and busybox wget
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3003/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -54,8 +60,9 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.crawler
+    network_mode: host
     environment:
-      DGRAPH_URL: http://dgraph:8080
+      DGRAPH_URL: http://127.0.0.1:18085
     depends_on:
       dgraph:
         condition: service_healthy
@@ -67,8 +74,9 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile.crawler
     command: ["node", "dist/sources/eu-legislation/discover.js"]
+    network_mode: host
     environment:
-      DGRAPH_URL: http://dgraph:8080
+      DGRAPH_URL: http://127.0.0.1:18085
     volumes:
       - discover_data:/app/data
     depends_on:
