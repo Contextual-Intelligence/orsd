@@ -1,13 +1,16 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# ORSD Nightly Crawl — runs all source connectors
+# ORSD Crawl — runs all source connectors (manual only)
 # ──────────────────────────────────────────────────────────────────────────────
+# The scheduled crawl now runs on the deployment host itself
+# (/etc/cron.d/orsd-crawl, 02:00 UTC) against dgraph over loopback. The stack
+# is host-networked, so a GitHub-hosted runner would have to reach dgraph's
+# unauthenticated HTTP API over the public internet — GitHub-hosted runners
+# have no small, stable IPv4 range to allow-list. This workflow is kept for
+# ad-hoc/manual crawls only; point DGRAPH_URL at a reachable dgraph.
 
-name: Nightly Crawl
+name: Crawl (manual)
 
 on:
-  schedule:
-    # 02:00 UTC daily
-    - cron: "0 2 * * *"
   workflow_dispatch: {}
 
 jobs:
